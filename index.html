@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebGPU Game of Life</title>
+    <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <div id="controls">
+        <div class="control-group">
+            <button id="play-pause" title="Play / Pause (Space)">Pause</button>
+            <button id="step" title="Step one generation">Step</button>
+        </div>
+        <div class="control-group">
+            <label>GPS
+                <input type="range" id="gps" min="1" max="120" value="12" />
+                <span id="gps-value">12</span>
+            </label>
+        </div>
+        <div class="control-group">
+            <label>Grid
+                <select id="grid-size">
+                    <option value="128" selected>128</option>
+                    <option value="256">256</option>
+                    <option value="512">512</option>
+                    <option value="1024">1024</option>
+                    <option value="2048">2048</option>
+                </select>
+            </label>
+        </div>
+        <div class="control-group">
+            <label>Pattern
+                <select id="pattern"></select>
+            </label>
+        </div>
+        <div class="control-group">
+            <textarea id="expression" rows="3" spellcheck="false"></textarea>
+        </div>
+        <div class="control-group">
+            <button id="apply" title="Reset with current pattern">Reset</button>
+        </div>
+        <div id="pattern-error"></div>
+    </div>
+
+    <div id="stats">
+        <span id="stat-gen">Gen: 0</span>
+        <span id="stat-gps">GPS: 0</span>
+        <span id="stat-fps">FPS: 0</span>
+    </div>
+
+    <div id="timer" style="display: none"></div>
+
+    <div id="no-webgpu" style="display: none">
+        <h2>WebGPU is not supported</h2>
+        <p>This application requires a browser with WebGPU support (Chrome 113+, Edge 113+, Firefox 141+, Safari 26+).</p>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
