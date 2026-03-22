@@ -12,7 +12,7 @@ import { createEmojiAtlas, TILE_SIZE, TILE_COUNT } from "./emoji-atlas";
 // [24..28] camera_zoom: f32
 // [28..32] _pad: f32
 const UNIFORM_SIZE = 32;
-const HASH_ZERO = new Uint32Array([0]);
+const ATOMIC_ZERO = new Uint32Array([0]);
 
 // Cell buffers (cellsA, cellsB) store binary 0/1 (dead/alive).
 // Visual states (0–5) go into the state buffer only, written by the visual pass.
@@ -33,7 +33,8 @@ export class Simulation {
     private cellsB: GPUBuffer;
     private stateBuffer: GPUBuffer;
     private hashBuffer: GPUBuffer;
-    private hashReadBuffer: GPUBuffer;
+    private popBuffer: GPUBuffer;
+    private readbackBuffer: GPUBuffer;
 
     private stepPipeline: GPUComputePipeline;
     private visualPipeline: GPUComputePipeline;
@@ -54,7 +55,8 @@ export class Simulation {
         cellsB: GPUBuffer,
         stateBuffer: GPUBuffer,
         hashBuffer: GPUBuffer,
-        hashReadBuffer: GPUBuffer,
+        popBuffer: GPUBuffer,
+        readbackBuffer: GPUBuffer,
         stepPipeline: GPUComputePipeline,
         visualPipeline: GPUComputePipeline,
         hashPipeline: GPUComputePipeline,
@@ -72,7 +74,8 @@ export class Simulation {
         this.cellsB = cellsB;
         this.stateBuffer = stateBuffer;
         this.hashBuffer = hashBuffer;
-        this.hashReadBuffer = hashReadBuffer;
+        this.popBuffer = popBuffer;
+        this.readbackBuffer = readbackBuffer;
         this.stepPipeline = stepPipeline;
         this.visualPipeline = visualPipeline;
         this.hashPipeline = hashPipeline;
@@ -164,15 +167,20 @@ export class Simulation {
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         });
 
-        // Hash buffer: written by compute (atomic), copied to staging for readback
+        // Hash + population buffers: written by compute (atomic), copied to staging for readback
         const hashBuffer = device.createBuffer({
             label: "hash",
             size: 4,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
         });
-        const hashReadBuffer = device.createBuffer({
-            label: "hash_read",
+        const popBuffer = device.createBuffer({
+            label: "pop",
             size: 4,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+        });
+        const readbackBuffer = device.createBuffer({
+            label: "readback",
+            size: 8,
             usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
         });
 
@@ -202,6 +210,7 @@ export class Simulation {
                 { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
                 { binding: 3, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
                 { binding: 4, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
+                { binding: 5, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
             ],
         });
 
@@ -235,6 +244,7 @@ export class Simulation {
                 { binding: 2, resource: { buffer: cellsB } },
                 { binding: 3, resource: { buffer: stateBuffer } },
                 { binding: 4, resource: { buffer: hashBuffer } },
+                { binding: 5, resource: { buffer: popBuffer } },
             ],
         });
 
@@ -247,6 +257,7 @@ export class Simulation {
                 { binding: 2, resource: { buffer: cellsA } },
                 { binding: 3, resource: { buffer: stateBuffer } },
                 { binding: 4, resource: { buffer: hashBuffer } },
+                { binding: 5, resource: { buffer: popBuffer } },
             ],
         });
 
@@ -291,7 +302,7 @@ export class Simulation {
             device, queue, context,
             width, height,
             uniformBuffer, cellsA, cellsB, stateBuffer,
-            hashBuffer, hashReadBuffer,
+            hashBuffer, popBuffer, readbackBuffer,
             stepPipeline, visualPipeline, hashPipeline, [computeBG0, computeBG1],
             renderPipeline, renderBindGroup,
         );
@@ -317,8 +328,9 @@ export class Simulation {
         const genData = new Uint32Array([this._generation]);
         this.queue.writeBuffer(this.uniformBuffer, 8, genData.buffer);
 
-        // Clear hash buffer before compute
-        this.queue.writeBuffer(this.hashBuffer, 0, HASH_ZERO.buffer);
+        // Clear atomic buffers before compute
+        this.queue.writeBuffer(this.hashBuffer, 0, ATOMIC_ZERO.buffer);
+        this.queue.writeBuffer(this.popBuffer, 0, ATOMIC_ZERO.buffer);
 
         const wgX = Math.ceil(this._width / 8);
         const wgY = Math.ceil(this._height / 8);
@@ -347,8 +359,9 @@ export class Simulation {
         hashPass.dispatchWorkgroups(wgX, wgY);
         hashPass.end();
 
-        // Copy hash to staging buffer for CPU readback
-        encoder.copyBufferToBuffer(this.hashBuffer, 0, this.hashReadBuffer, 0, 4);
+        // Copy hash + population to staging buffer for CPU readback
+        encoder.copyBufferToBuffer(this.hashBuffer, 0, this.readbackBuffer, 0, 4);
+        encoder.copyBufferToBuffer(this.popBuffer, 0, this.readbackBuffer, 4, 4);
 
         this.queue.submit([encoder.finish()]);
 
@@ -356,11 +369,13 @@ export class Simulation {
         return this._generation;
     }
 
-    async readHash(): Promise<number> {
-        await this.hashReadBuffer.mapAsync(GPUMapMode.READ);
-        const val = new Uint32Array(this.hashReadBuffer.getMappedRange())[0];
-        this.hashReadBuffer.unmap();
-        return val;
+    async readStats(): Promise<{ hash: number; pop: number }> {
+        await this.readbackBuffer.mapAsync(GPUMapMode.READ);
+        const data = new Uint32Array(this.readbackBuffer.getMappedRange());
+        const hash = data[0];
+        const pop = data[1];
+        this.readbackBuffer.unmap();
+        return { hash, pop };
     }
 
     render(): void {
@@ -403,6 +418,7 @@ export class Simulation {
         this.cellsB.destroy();
         this.stateBuffer.destroy();
         this.hashBuffer.destroy();
-        this.hashReadBuffer.destroy();
+        this.popBuffer.destroy();
+        this.readbackBuffer.destroy();
     }
 }

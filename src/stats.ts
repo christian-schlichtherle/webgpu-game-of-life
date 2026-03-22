@@ -1,4 +1,5 @@
 const genEl = document.getElementById("stat-gen")!;
+const popEl = document.getElementById("stat-pop")!;
 const gpsEl = document.getElementById("stat-gps")!;
 const fpsEl = document.getElementById("stat-fps")!;
 
@@ -9,6 +10,10 @@ let lastFpsTime = performance.now();
 
 export function updateGeneration(gen: number): void {
     genEl.textContent = `Gen: ${gen.toLocaleString()}`;
+}
+
+export function updatePopulation(pop: number): void {
+    popEl.textContent = `Pop: ${pop.toLocaleString()}`;
 }
 
 export function measureGps(gen: number): void {
@@ -40,6 +45,7 @@ export function resetStats(): void {
     frameCount = 0;
     lastFpsTime = performance.now();
     genEl.textContent = "Gen: 0";
+    popEl.textContent = "Pop: 0";
     gpsEl.textContent = "GPS: 0";
     fpsEl.textContent = "FPS: 0";
 }

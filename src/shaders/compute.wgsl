@@ -18,6 +18,7 @@ struct Uniforms {
 @group(0) @binding(2) var<storage, read_write> cells_out: array<u32>;
 @group(0) @binding(3) var<storage, read_write> state: array<u32>;
 @group(0) @binding(4) var<storage, read_write> hash_out: atomic<u32>;
+@group(0) @binding(5) var<storage, read_write> pop_out: atomic<u32>;
 
 fn idx(row: u32, col: u32) -> u32 {
     let r = (row + uniforms.height) % uniforms.height;
@@ -113,5 +114,6 @@ fn hash(@builtin(global_invocation_id) gid: vec3u) {
     let i = row * uniforms.width + col;
     if (cells_out[i] == 1u) {
         atomicXor(&hash_out, i * 0x9e3779b9u);
+        atomicAdd(&pop_out, 1u);
     }
 }

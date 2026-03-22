@@ -1,6 +1,6 @@
 import { Simulation } from "./simulation";
 import { PATTERNS, evaluateExpression } from "./patterns";
-import { updateGeneration, measureGps, measureFps, resetStats } from "./stats";
+import { updateGeneration, updatePopulation, measureGps, measureFps, resetStats } from "./stats";
 import { AppState, setupControls, computeGridSize } from "./controls";
 import { LoopDetector } from "./loop-detect";
 import { maxZoomForGrid } from "./zoom-pan";
@@ -49,6 +49,9 @@ async function main() {
         const cells = evaluateExpression(state.currentExpression, state.gridWidth, state.gridHeight);
         state.sim.uploadCells(cells);
         resetStats();
+        let pop = 0;
+        for (let i = 0; i < cells.length; i++) pop += cells[i];
+        updatePopulation(pop);
         state.accumulator = 0;
         state.lastTime = 0;
     }
@@ -90,8 +93,9 @@ async function main() {
                 // Check for loops via async hash readback
                 if (!loopDetector.isPending) {
                     loopDetector.isPending = true;
-                    state.sim.readHash().then((hash) => {
+                    state.sim.readStats().then(({ hash, pop }) => {
                         loopDetector.isPending = false;
+                        updatePopulation(pop);
                         if (loopDetector.feed(hash) && countdownEnd === 0) {
                             countdownEnd = performance.now() + COUNTDOWN_SECONDS * 1000;
                         }
