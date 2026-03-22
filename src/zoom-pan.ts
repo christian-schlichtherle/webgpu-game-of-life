@@ -53,8 +53,8 @@ export function setupZoomPan(
 
     canvas.addEventListener("mousemove", (e) => {
         if (!dragging) return;
-        const dx = (e.clientX - startX) / canvas.width / camera.zoom;
-        const dy = (e.clientY - startY) / canvas.height / camera.zoom;
+        const dx = (e.clientX - startX) / canvas.clientWidth / camera.zoom;
+        const dy = (e.clientY - startY) / canvas.clientHeight / camera.zoom;
         camera.offsetX -= dx;
         camera.offsetY -= dy;
         startX = e.clientX;
@@ -69,7 +69,6 @@ export function setupZoomPan(
 
     // Touch: pinch to zoom, drag to pan
     let lastTouchDist = 0;
-    let lastTouchCenter = { x: 0, y: 0 };
 
     canvas.addEventListener("touchstart", (e) => {
         if (e.touches.length === 1) {
@@ -81,18 +80,14 @@ export function setupZoomPan(
             const dx = e.touches[1].clientX - e.touches[0].clientX;
             const dy = e.touches[1].clientY - e.touches[0].clientY;
             lastTouchDist = Math.hypot(dx, dy);
-            lastTouchCenter = {
-                x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-                y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
-            };
         }
     }, { passive: true });
 
     canvas.addEventListener("touchmove", (e) => {
         e.preventDefault();
         if (e.touches.length === 1 && dragging) {
-            const dx = (e.touches[0].clientX - startX) / canvas.width / camera.zoom;
-            const dy = (e.touches[0].clientY - startY) / canvas.height / camera.zoom;
+            const dx = (e.touches[0].clientX - startX) / canvas.clientWidth / camera.zoom;
+            const dy = (e.touches[0].clientY - startY) / canvas.clientHeight / camera.zoom;
             camera.offsetX -= dx;
             camera.offsetY -= dy;
             startX = e.touches[0].clientX;

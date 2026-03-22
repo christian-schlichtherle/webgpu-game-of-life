@@ -2,7 +2,7 @@ struct Uniforms {
     width: u32,
     height: u32,
     generation: u32,
-    _pad: u32,
+    cell_aspect: f32,
 };
 
 // Visual states (matching emoji atlas tiles):

@@ -1,5 +1,5 @@
 import {Simulation} from "./simulation";
-import {evaluateExpression, setupPatternSelector} from "./patterns";
+import {countAlive, evaluateExpression, setupPatternSelector} from "./patterns";
 import {resetStats, updateGeneration, updatePopulation} from "./stats";
 import {Camera, maxZoomForGrid, setupZoomPan} from "./zoom-pan";
 
@@ -38,9 +38,7 @@ export function setupControls(state: AppState, onPatternChange?: () => void): vo
             const cells = evaluateExpression(state.currentExpression, state.gridWidth, state.gridHeight);
             state.sim.uploadCells(cells);
             resetStats();
-            let pop = 0;
-            for (let i = 0; i < cells.length; i++) pop += cells[i];
-            updatePopulation(pop);
+            updatePopulation(countAlive(cells));
         } catch (e) {
             errorEl.textContent = (e as Error).message;
             return;
@@ -56,11 +54,19 @@ export function setupControls(state: AppState, onPatternChange?: () => void): vo
         if (!state.playing) onPatternChange?.();
     }
 
+    let popPending = false;
+
     function stepOnce() {
         const gen = state.sim.step();
         updateGeneration(gen);
         state.sim.render();
-        state.sim.readStats().then(({ pop }) => updatePopulation(pop));
+        if (!popPending) {
+            popPending = true;
+            state.sim.readStats().then(({ pop }) => {
+                popPending = false;
+                updatePopulation(pop);
+            }).catch(() => { popPending = false; });
+        }
     }
 
     playPauseBtn.addEventListener("click", togglePlay);

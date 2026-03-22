@@ -1,5 +1,5 @@
 import { Simulation } from "./simulation";
-import { PATTERNS, evaluateExpression } from "./patterns";
+import { PATTERNS, evaluateExpression, countAlive } from "./patterns";
 import { updateGeneration, updatePopulation, measureGps, measureFps, resetStats } from "./stats";
 import { AppState, setupControls, computeGridSize } from "./controls";
 import { LoopDetector } from "./loop-detect";
@@ -49,9 +49,7 @@ async function main() {
         const cells = evaluateExpression(state.currentExpression, state.gridWidth, state.gridHeight);
         state.sim.uploadCells(cells);
         resetStats();
-        let pop = 0;
-        for (let i = 0; i < cells.length; i++) pop += cells[i];
-        updatePopulation(pop);
+        updatePopulation(countAlive(cells));
         state.accumulator = 0;
         state.lastTime = 0;
     }
@@ -99,7 +97,7 @@ async function main() {
                         if (loopDetector.feed(hash) && countdownEnd === 0) {
                             countdownEnd = performance.now() + COUNTDOWN_SECONDS * 1000;
                         }
-                    });
+                    }).catch(() => { loopDetector.isPending = false; });
                 }
             }
         }

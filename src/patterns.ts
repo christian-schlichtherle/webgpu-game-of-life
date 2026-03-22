@@ -75,6 +75,12 @@ export function evaluateExpression(
     return cells;
 }
 
+export function countAlive(cells: Uint32Array): number {
+    let pop = 0;
+    for (let i = 0; i < cells.length; i++) pop += cells[i];
+    return pop;
+}
+
 export function setupPatternSelector(
     onSelect: (expr: string) => void,
 ): void {

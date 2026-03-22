@@ -66,11 +66,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4f {
     // Cell UV within the tile (cells are now square, no per-cell correction needed)
     var cell_uv = fract(vec2f(uv.x * f32(uniforms.width), uv.y * f32(uniforms.height)));
 
-    // Outside the square region → background
-    if (cell_uv.x < 0.0 || cell_uv.x > 1.0 || cell_uv.y < 0.0 || cell_uv.y > 1.0) {
-        return vec4f(BG, 1.0);
-    }
-
     let tile_x = (f32(cell_state) + cell_uv.x) / TILE_COUNT;
     let tile_y = cell_uv.y;
     let emoji_color = textureSample(emoji_texture, emoji_sampler, vec2f(tile_x, tile_y));
