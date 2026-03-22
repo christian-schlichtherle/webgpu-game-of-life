@@ -68,7 +68,7 @@ Partial updates use `queue.writeBuffer()` with byte offsets — camera updates w
 - `src/zoom-pan.ts` — Mouse/touch zoom-to-cursor and drag-to-pan with offset clamping (grid always fills viewport, max zoom scales with grid size so cells reach consistent pixel size)
 - `src/patterns.ts` — Pattern presets and custom expression evaluation via `new Function()` with `row/col/rows/cols` variables
 - `src/stats.ts` — Generation counter, GPS and FPS measurement (updates DOM elements once per second)
-- `src/loop-detect.ts` — Sliding-window hash comparison for loop/oscillator detection (ported from `electron-game-of-life`)
+- `src/loop-detect.ts` — 3-entry hash window detecting period ≤ 2 loops (still lifes and blinker-class boards); higher-period oscillators run forever (ported from `electron-game-of-life`)
 - `src/controls.ts` — UI event wiring (play/pause, step, GPS slider, grid size, pattern selector, keyboard shortcuts, device lost)
 - `src/main.ts` — Init, state setup, game loop with accumulator-based timing (GPS decoupled from render FPS, max 100 steps/frame), and loop-triggered countdown + restart
 

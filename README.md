@@ -38,7 +38,8 @@ npm run dev
 - **Pattern** — preset patterns or custom JavaScript expressions
 - **Zoom** — scroll to zoom toward cursor
 - **Pan** — click and drag
-- **Loop detection** — when the simulation enters a repeating cycle, a 5-second countdown appears and the game restarts with a fresh pattern
+- **Restart** — R key restarts the current pattern
+- **Loop detection** — when the board settles into a still life or period-2 cycle, a 5-second countdown appears and the game restarts with a fresh pattern
 
 ## Pattern expressions
 

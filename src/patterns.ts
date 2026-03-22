@@ -95,6 +95,7 @@ export function setupPatternSelector(
         const pattern = PATTERNS[Number(select.value)];
         textarea.value = pattern.expression;
         onSelect(pattern.expression);
+        select.blur();
     });
 
     document.getElementById("apply")!.addEventListener("click", () => {
