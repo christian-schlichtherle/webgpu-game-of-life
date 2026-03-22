@@ -12,7 +12,7 @@
     <div id="controls">
         <div class="control-group">
             <button id="play-pause" title="Play / Pause (Space)">Pause</button>
-            <button id="step" title="Step one generation">Step</button>
+            <button id="step" title="Step one generation (→)">Step</button>
         </div>
         <div class="control-group">
             <label>GPS
@@ -40,7 +40,7 @@
             <textarea id="expression" rows="3" spellcheck="false"></textarea>
         </div>
         <div class="control-group">
-            <button id="apply" title="Reset with current pattern">Reset</button>
+            <button id="apply" title="Reset with current pattern (R)">Reset</button>
         </div>
         <div id="pattern-error"></div>
     </div>
@@ -49,6 +49,14 @@
         <span id="stat-gen">Gen: 0</span>
         <span id="stat-gps">GPS: 0</span>
         <span id="stat-fps">FPS: 0</span>
+    </div>
+
+    <div id="hints">
+        <span>Space</span> pause
+        <span>&rarr;</span> step
+        <span>R</span> reset
+        <span>Scroll</span> zoom
+        <span>Drag</span> pan
     </div>
 
     <div id="timer" style="display: none"></div>
