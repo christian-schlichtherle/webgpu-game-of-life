@@ -105,6 +105,25 @@ async function main() {
         requestAnimationFrame(frame);
     }
 
+    // Pause when tab/window is hidden to save GPU/CPU; resume on return
+    let wasPlayingBeforeHidden = false;
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+            wasPlayingBeforeHidden = state.playing;
+            if (state.playing) {
+                state.playing = false;
+                document.getElementById("play-pause")!.textContent = "Play";
+            }
+        } else {
+            if (wasPlayingBeforeHidden) {
+                state.playing = true;
+                document.getElementById("play-pause")!.textContent = "Pause";
+            }
+            state.lastTime = 0;
+            state.accumulator = 0;
+        }
+    });
+
     state.sim.render();
     requestAnimationFrame(frame);
 }

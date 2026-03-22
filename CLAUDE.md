@@ -70,7 +70,7 @@ Partial updates use `queue.writeBuffer()` with byte offsets — camera updates w
 - `src/stats.ts` — Generation counter, GPS and FPS measurement (updates DOM elements once per second)
 - `src/loop-detect.ts` — 3-entry hash window detecting period ≤ 2 loops (still lifes and blinker-class boards); higher-period oscillators run forever (ported from `electron-game-of-life`)
 - `src/controls.ts` — UI event wiring (play/pause, step, GPS slider, grid size, pattern selector, keyboard shortcuts, device lost)
-- `src/main.ts` — Init, state setup, game loop with accumulator-based timing (GPS decoupled from render FPS, max 100 steps/frame), and loop-triggered countdown + restart
+- `src/main.ts` — Init, state setup, game loop with accumulator-based timing (GPS decoupled from render FPS, max 100 steps/frame), loop-triggered countdown + restart, and visibility-based auto-pause (pauses when tab is hidden, resumes on return)
 
 ### Pattern expressions
 

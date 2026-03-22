@@ -40,6 +40,7 @@ npm run dev
 - **Pan** — click and drag
 - **Restart** — R key restarts the current pattern
 - **Loop detection** — when the board settles into a still life or period-2 cycle, a 5-second countdown appears and the game restarts with a fresh pattern
+- **Auto-pause** — simulation pauses when the tab is hidden to save GPU/CPU, and resumes on return
 
 ## Pattern expressions
 
