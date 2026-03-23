@@ -61,16 +61,16 @@ Partial updates use `queue.writeBuffer()` with byte offsets — camera updates w
 
 ### Key files
 
-- `src/simulation.ts` — WebGPU device init, buffer creation, pipeline setup, `step()`, `prepareReadback()`, `render()`, and `resize()` methods; `step()` runs compute only (no readback buffer access) so it never fails when a `mapAsync` is pending; `prepareReadback()` copies hash+pop to the staging buffer and must only be called when the readback buffer is unmapped; device-level resources (pipelines, emoji atlas) survive grid resize while grid-level resources (cell buffers, bind groups) are rebuilt
+- `src/simulation.ts` — WebGPU device init, buffer creation, pipeline setup, `step()`, `prepareReadback()`, `render()`, and `resize()` methods; `step(count)` encodes compute passes into a pending encoder without submitting — visual + hash only on the final step; `prepareReadback()` appends readback copy to the pending encoder; `render()` appends the render pass and submits everything in a single `queue.submit()`; device-level resources (pipelines, emoji atlas) survive grid resize while grid-level resources (cell buffers, bind groups) are rebuilt
 - `src/emoji-atlas.ts` — Renders 6 emoji to an offscreen canvas, uploaded as GPU texture atlas
 - `src/shaders/compute.wgsl` — Three-pass compute: `step` (Conway rules, binary output), `visual` (state codes from prev/curr + neighbor count in new gen), `hash` (atomicXor board fingerprint for loop detection + atomicAdd population count), workgroup size 8×8
 - `src/shaders/render.wgsl` — Fullscreen triangle, screen-level aspect letterboxing for square cells, emoji texture sampling per cell, camera transform (no tiling — out-of-grid UVs show background)
 - `src/zoom-pan.ts` — Mouse/touch zoom-to-cursor and drag-to-pan with offset clamping (grid always fills viewport, max zoom scales with grid size so cells reach consistent pixel size)
 - `src/patterns.ts` — Pattern presets and custom expression evaluation via `new Function()` with `row/col/rows/cols` variables
 - `src/stats.ts` — Generation counter, population counter, GPS and FPS measurement (updates DOM elements once per second)
-- `src/loop-detect.ts` — 3-entry hash window detecting period ≤ 2 loops (still lifes and blinker-class boards); higher-period oscillators run forever (ported from `electron-game-of-life`)
+- `src/loop-detect.ts` — Generation-aware 3-entry hash window detecting period ≤ 2 loops (still lifes and blinker-class boards); only compares hashes within MAX_PERIOD generations of each other to avoid aliasing higher-period oscillators when steps are batched; higher-period oscillators run forever (ported from `electron-game-of-life`)
 - `src/controls.ts` — UI event wiring (play/pause, step, GPS slider, grid size, pattern selector, keyboard shortcuts, device lost, window resize triggers grid rebuild)
-- `src/main.ts` — Init, state setup, game loop with accumulator-based timing (GPS decoupled from render FPS, max 100 steps/frame), loop-triggered countdown + restart, and visibility-based auto-pause (pauses when tab is hidden, resumes on return)
+- `src/main.ts` — Init, state setup, game loop with accumulator-based timing (GPS decoupled from render FPS, max 16 steps/frame), loop-triggered countdown + restart (readback only when `maxSteps === 1` to prevent aliasing), and visibility-based auto-pause (pauses when tab is hidden, resumes on return)
 
 ### Pattern expressions
 

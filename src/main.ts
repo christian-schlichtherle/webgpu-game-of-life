@@ -75,7 +75,7 @@ async function main() {
             return;
         }
 
-        let wantReadback = false;
+        let readbackGen = 0;
         if (state.playing) {
             state.accumulator += dt;
             const stepTime = 1000 / state.gps;
@@ -86,9 +86,11 @@ async function main() {
                 updateGeneration(gen);
                 measureGps(gen);
 
-                if (!loopDetector.isPending) {
+                // Only read back when stepping one generation at a time —
+                // batched steps can alias higher-period oscillators as loops
+                if (!loopDetector.isPending && maxSteps === 1) {
                     state.sim.prepareReadback();
-                    wantReadback = true;
+                    readbackGen = gen;
                 }
             }
         }
@@ -97,12 +99,13 @@ async function main() {
         state.sim.render();
 
         // Initiate async map AFTER submit so readback buffer isn't mapped during submission
-        if (wantReadback) {
+        if (readbackGen > 0) {
             loopDetector.isPending = true;
+            const gen = readbackGen;
             state.sim.readStats().then(({ hash, pop }) => {
                 loopDetector.isPending = false;
                 updatePopulation(pop);
-                if (loopDetector.feed(hash) && countdownEnd === 0) {
+                if (loopDetector.feed(hash, gen) && countdownEnd === 0) {
                     countdownEnd = performance.now() + COUNTDOWN_SECONDS * 1000;
                 }
             }).catch(() => { loopDetector.isPending = false; });

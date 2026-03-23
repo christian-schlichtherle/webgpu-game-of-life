@@ -1,22 +1,30 @@
 // Detect loops up to this period (still lifes + blinker-class oscillators).
-// Window holds period + 1 entries, matching the electron-game-of-life approach.
+// Higher-period oscillators (pulsars etc.) run forever.
 const MAX_PERIOD = 2;
 
+interface HashEntry { hash: number; gen: number; }
+
 export class LoopDetector {
-    private hashes: number[] = [];
+    private entries: HashEntry[] = [];
     private pending = false;
 
     reset(): void {
-        this.hashes = [];
+        this.entries = [];
         this.pending = false;
     }
 
-    feed(hash: number): boolean {
-        this.hashes.push(hash);
-        if (this.hashes.length > MAX_PERIOD + 1) {
-            this.hashes.shift();
+    /** Feed a hash with its generation. Returns true if a loop of period ≤ MAX_PERIOD is detected. */
+    feed(hash: number, gen: number): boolean {
+        for (const e of this.entries) {
+            if (e.hash === hash && gen - e.gen <= MAX_PERIOD) {
+                return true;
+            }
         }
-        return new Set(this.hashes).size < this.hashes.length;
+        this.entries.push({ hash, gen });
+        if (this.entries.length > MAX_PERIOD + 1) {
+            this.entries.shift();
+        }
+        return false;
     }
 
     get isPending(): boolean {
