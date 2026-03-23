@@ -62,6 +62,7 @@ export function setupControls(state: AppState, onPatternChange?: () => void): vo
         state.sim.render();
         if (!popPending) {
             popPending = true;
+            state.sim.prepareReadback();
             state.sim.readStats().then(({ pop }) => {
                 popPending = false;
                 updatePopulation(pop);

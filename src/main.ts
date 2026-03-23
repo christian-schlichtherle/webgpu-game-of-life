@@ -91,6 +91,7 @@ async function main() {
                 // Check for loops via async hash readback
                 if (!loopDetector.isPending) {
                     loopDetector.isPending = true;
+                    state.sim.prepareReadback();
                     state.sim.readStats().then(({ hash, pop }) => {
                         loopDetector.isPending = false;
                         updatePopulation(pop);

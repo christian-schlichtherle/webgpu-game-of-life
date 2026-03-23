@@ -61,7 +61,7 @@ Partial updates use `queue.writeBuffer()` with byte offsets — camera updates w
 
 ### Key files
 
-- `src/simulation.ts` — WebGPU device init, buffer creation, pipeline setup, `step()`, `render()`, and `resize()` methods; device-level resources (pipelines, emoji atlas) survive grid resize while grid-level resources (cell buffers, bind groups) are rebuilt
+- `src/simulation.ts` — WebGPU device init, buffer creation, pipeline setup, `step()`, `prepareReadback()`, `render()`, and `resize()` methods; `step()` runs compute only (no readback buffer access) so it never fails when a `mapAsync` is pending; `prepareReadback()` copies hash+pop to the staging buffer and must only be called when the readback buffer is unmapped; device-level resources (pipelines, emoji atlas) survive grid resize while grid-level resources (cell buffers, bind groups) are rebuilt
 - `src/emoji-atlas.ts` — Renders 6 emoji to an offscreen canvas, uploaded as GPU texture atlas
 - `src/shaders/compute.wgsl` — Three-pass compute: `step` (Conway rules, binary output), `visual` (state codes from prev/curr + neighbor count in new gen), `hash` (atomicXor board fingerprint for loop detection + atomicAdd population count), workgroup size 8×8
 - `src/shaders/render.wgsl` — Fullscreen triangle, screen-level aspect letterboxing for square cells, emoji texture sampling per cell, camera transform (no tiling — out-of-grid UVs show background)

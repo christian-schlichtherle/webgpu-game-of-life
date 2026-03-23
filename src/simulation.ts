@@ -355,14 +355,18 @@ export class Simulation {
         hashPass.dispatchWorkgroups(wgX, wgY);
         hashPass.end();
 
-        // Copy hash + population to staging buffer for CPU readback
-        encoder.copyBufferToBuffer(this.hashBuffer, 0, this.readbackBuffer, 0, 4);
-        encoder.copyBufferToBuffer(this.popBuffer, 0, this.readbackBuffer, 4, 4);
-
         this.queue.submit([encoder.finish()]);
 
         this.phase = 1 - this.phase;
         return this._generation;
+    }
+
+    /** Copy hash + population to the readback staging buffer. Call only when readbackBuffer is unmapped. */
+    prepareReadback(): void {
+        const encoder = this.device.createCommandEncoder();
+        encoder.copyBufferToBuffer(this.hashBuffer, 0, this.readbackBuffer, 0, 4);
+        encoder.copyBufferToBuffer(this.popBuffer, 0, this.readbackBuffer, 4, 4);
+        this.queue.submit([encoder.finish()]);
     }
 
     async readStats(): Promise<{ hash: number; pop: number }> {
