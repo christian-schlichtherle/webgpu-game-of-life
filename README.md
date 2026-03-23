@@ -34,7 +34,7 @@ npm run dev
 - **Play / Pause** — start or stop the simulation (Space)
 - **Step** — advance one generation (→)
 - **GPS** — generations per second (1–120)
-- **Grid** — base grid size (128–2048, columns/rows scaled to viewport aspect ratio)
+- **Grid** — base grid size (128–2048, columns/rows scaled to viewport aspect ratio, rebuilds on window resize)
 - **Pattern** — preset patterns or custom JavaScript expressions
 - **Zoom** — scroll to zoom toward cursor
 - **Pan** — click and drag

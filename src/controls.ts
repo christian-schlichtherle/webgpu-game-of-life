@@ -86,13 +86,10 @@ export function setupControls(state: AppState, onPatternChange?: () => void): vo
     }
     updateGridLabels();
 
-    gridSelect.addEventListener("change", async () => {
+    gridSelect.addEventListener("change", () => {
         const base = Number(gridSelect.value);
         [state.gridWidth, state.gridHeight] = computeGridSize(base, state.canvas);
-        const newSim = await Simulation.create(state.canvas, state.gridWidth, state.gridHeight);
-        state.sim.destroy();
-        state.sim = newSim;
-        state.sim.device.lost.then(handleDeviceLost);
+        state.sim.resize(state.canvas, state.gridWidth, state.gridHeight);
         state.camera.offsetX = 0;
         state.camera.offsetY = 0;
         state.camera.zoom = 1;
@@ -113,8 +110,16 @@ export function setupControls(state: AppState, onPatternChange?: () => void): vo
     window.addEventListener("resize", () => {
         state.canvas.width = window.innerWidth * devicePixelRatio;
         state.canvas.height = window.innerHeight * devicePixelRatio;
-        state.sim.updateCellAspect(state.canvas.width, state.canvas.height);
+        const base = Number(gridSelect.value);
+        [state.gridWidth, state.gridHeight] = computeGridSize(base, state.canvas);
+        state.sim.resize(state.canvas, state.gridWidth, state.gridHeight);
+        state.camera.offsetX = 0;
+        state.camera.offsetY = 0;
+        state.camera.zoom = 1;
+        state.camera.maxZoom = maxZoomForGrid(state.gridWidth, state.gridHeight);
+        state.sim.setCamera(0, 0, 1);
         updateGridLabels();
+        applyPattern();
     });
 
     document.addEventListener("keydown", (e) => {
