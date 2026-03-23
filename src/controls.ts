@@ -59,10 +59,11 @@ export function setupControls(state: AppState, onPatternChange?: () => void): vo
     function stepOnce() {
         const gen = state.sim.step();
         updateGeneration(gen);
+        const wantPop = !popPending;
+        if (wantPop) state.sim.prepareReadback();
         state.sim.render();
-        if (!popPending) {
+        if (wantPop) {
             popPending = true;
-            state.sim.prepareReadback();
             state.sim.readStats().then(({ pop }) => {
                 popPending = false;
                 updatePopulation(pop);

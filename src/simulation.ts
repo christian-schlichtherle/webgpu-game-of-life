@@ -12,7 +12,7 @@ import { createEmojiAtlas, TILE_SIZE, TILE_COUNT } from "./emoji-atlas";
 // [24..28] camera_zoom: f32
 // [28..32] _pad: f32
 const UNIFORM_SIZE = 32;
-const ATOMIC_ZERO = new Uint32Array([0]);
+const GEN_DATA = new Uint32Array(1);
 
 // Cell buffers (cellsA, cellsB) store binary 0/1 (dead/alive).
 // Visual states (0–5) go into the state buffer only, written by the visual pass.
@@ -31,6 +31,9 @@ export class Simulation {
     private renderBGL: GPUBindGroupLayout;
     private emojiTexture: GPUTexture;
     private emojiSampler: GPUSampler;
+
+    // Pending encoder: step() builds it, render() finishes and submits it
+    private pendingEncoder: GPUCommandEncoder | null = null;
 
     // Grid-level resources (recreated on resize)
     private _width!: number;
@@ -318,55 +321,59 @@ export class Simulation {
         this.queue.writeBuffer(this.uniformBuffer, 8, genData.buffer);
     }
 
-    step(): number {
-        this._generation++;
+    /** Encode compute passes into a pending encoder (submitted by render()). */
+    step(count = 1): number {
+        this._generation += count;
 
-        const genData = new Uint32Array([this._generation]);
-        this.queue.writeBuffer(this.uniformBuffer, 8, genData.buffer);
-
-        // Clear atomic buffers before compute
-        this.queue.writeBuffer(this.hashBuffer, 0, ATOMIC_ZERO.buffer);
-        this.queue.writeBuffer(this.popBuffer, 0, ATOMIC_ZERO.buffer);
+        GEN_DATA[0] = this._generation;
+        this.queue.writeBuffer(this.uniformBuffer, 8, GEN_DATA);
 
         const wgX = Math.ceil(this._width / 8);
         const wgY = Math.ceil(this._height / 8);
-        const bg = this.computeBindGroups[this.phase];
 
         const encoder = this.device.createCommandEncoder();
 
-        // Pass 1: Conway's rules — write binary alive/dead to cells_out
-        const stepPass = encoder.beginComputePass();
-        stepPass.setPipeline(this.stepPipeline);
-        stepPass.setBindGroup(0, bg);
-        stepPass.dispatchWorkgroups(wgX, wgY);
-        stepPass.end();
+        for (let s = 0; s < count; s++) {
+            const bg = this.computeBindGroups[this.phase];
 
-        // Pass 2: Visual states — compare prev vs curr, count neighbors in curr
-        const visualPass = encoder.beginComputePass();
-        visualPass.setPipeline(this.visualPipeline);
-        visualPass.setBindGroup(0, bg);
-        visualPass.dispatchWorkgroups(wgX, wgY);
-        visualPass.end();
+            const stepPass = encoder.beginComputePass();
+            stepPass.setPipeline(this.stepPipeline);
+            stepPass.setBindGroup(0, bg);
+            stepPass.dispatchWorkgroups(wgX, wgY);
+            stepPass.end();
 
-        // Pass 3: Hash cells_out for loop detection
-        const hashPass = encoder.beginComputePass();
-        hashPass.setPipeline(this.hashPipeline);
-        hashPass.setBindGroup(0, bg);
-        hashPass.dispatchWorkgroups(wgX, wgY);
-        hashPass.end();
+            if (s === count - 1) {
+                encoder.clearBuffer(this.hashBuffer, 0, 4);
+                encoder.clearBuffer(this.popBuffer, 0, 4);
 
-        this.queue.submit([encoder.finish()]);
+                const visualPass = encoder.beginComputePass();
+                visualPass.setPipeline(this.visualPipeline);
+                visualPass.setBindGroup(0, bg);
+                visualPass.dispatchWorkgroups(wgX, wgY);
+                visualPass.end();
 
-        this.phase = 1 - this.phase;
+                const hashPass = encoder.beginComputePass();
+                hashPass.setPipeline(this.hashPipeline);
+                hashPass.setBindGroup(0, bg);
+                hashPass.dispatchWorkgroups(wgX, wgY);
+                hashPass.end();
+            }
+
+            this.phase = 1 - this.phase;
+        }
+
+        this.pendingEncoder = encoder;
         return this._generation;
     }
 
-    /** Copy hash + population to the readback staging buffer. Call only when readbackBuffer is unmapped. */
+    /** Append readback copy to the pending encoder. Call between step() and render(). */
     prepareReadback(): void {
-        const encoder = this.device.createCommandEncoder();
+        const encoder = this.pendingEncoder ?? this.device.createCommandEncoder();
         encoder.copyBufferToBuffer(this.hashBuffer, 0, this.readbackBuffer, 0, 4);
         encoder.copyBufferToBuffer(this.popBuffer, 0, this.readbackBuffer, 4, 4);
-        this.queue.submit([encoder.finish()]);
+        if (!this.pendingEncoder) {
+            this.queue.submit([encoder.finish()]);
+        }
     }
 
     async readStats(): Promise<{ hash: number; pop: number }> {
@@ -378,9 +385,12 @@ export class Simulation {
         return { hash, pop };
     }
 
+    /** Append render pass to the pending encoder (if any) and submit everything. */
     render(): void {
+        const encoder = this.pendingEncoder ?? this.device.createCommandEncoder();
+        this.pendingEncoder = null;
+
         const textureView = this.context.getCurrentTexture().createView();
-        const encoder = this.device.createCommandEncoder();
         const pass = encoder.beginRenderPass({
             colorAttachments: [{
                 view: textureView,

@@ -75,35 +75,38 @@ async function main() {
             return;
         }
 
+        let wantReadback = false;
         if (state.playing) {
             state.accumulator += dt;
             const stepTime = 1000 / state.gps;
-            const maxSteps = Math.min(Math.floor(state.accumulator / stepTime), 100);
-            let gen = 0;
-            for (let i = 0; i < maxSteps; i++) {
-                gen = state.sim.step();
-                state.accumulator -= stepTime;
-            }
+            const maxSteps = Math.min(Math.floor(state.accumulator / stepTime), 16);
             if (maxSteps > 0) {
+                const gen = state.sim.step(maxSteps);
+                state.accumulator -= stepTime * maxSteps;
                 updateGeneration(gen);
                 measureGps(gen);
 
-                // Check for loops via async hash readback
                 if (!loopDetector.isPending) {
-                    loopDetector.isPending = true;
                     state.sim.prepareReadback();
-                    state.sim.readStats().then(({ hash, pop }) => {
-                        loopDetector.isPending = false;
-                        updatePopulation(pop);
-                        if (loopDetector.feed(hash) && countdownEnd === 0) {
-                            countdownEnd = performance.now() + COUNTDOWN_SECONDS * 1000;
-                        }
-                    }).catch(() => { loopDetector.isPending = false; });
+                    wantReadback = true;
                 }
             }
         }
 
+        // Single submit: compute + readback copy + render all in one command buffer
         state.sim.render();
+
+        // Initiate async map AFTER submit so readback buffer isn't mapped during submission
+        if (wantReadback) {
+            loopDetector.isPending = true;
+            state.sim.readStats().then(({ hash, pop }) => {
+                loopDetector.isPending = false;
+                updatePopulation(pop);
+                if (loopDetector.feed(hash) && countdownEnd === 0) {
+                    countdownEnd = performance.now() + COUNTDOWN_SECONDS * 1000;
+                }
+            }).catch(() => { loopDetector.isPending = false; });
+        }
         measureFps();
         requestAnimationFrame(frame);
     }
