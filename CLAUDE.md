@@ -14,7 +14,7 @@ No test framework is configured.
 
 ## Deployment
 
-The app is deployed to GitHub Pages via a GitHub Actions workflow (`.github/workflows/deploy.yml`). It triggers on pushes to `main`. Vite's `base` is set to `/webgpu-game-of-life/` to match the repo subpath on Pages. The Node version is pinned in `.node-version` and referenced by both the GHA workflow and local version managers.
+The app is deployed to GitHub Pages via a GitHub Actions workflow (`.github/workflows/deploy.yml`). It triggers on pushes to `main`. Vite's `base` is driven by the `BASE_PATH` env var (defaults to `/` for local dev); the GHA workflow sets it to `/webgpu-game-of-life/` to match the repo subpath on Pages. The Node version is pinned in `.node-version` and referenced by both the GHA workflow and local version managers.
 
 ## Architecture
 

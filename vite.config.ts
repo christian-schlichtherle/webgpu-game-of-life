@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  base: "/webgpu-game-of-life/",
+  base: process.env.BASE_PATH ?? "/",
   build: {
     target: "esnext",
   },
