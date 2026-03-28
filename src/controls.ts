@@ -109,19 +109,23 @@ export function setupControls(state: AppState, onPatternChange?: () => void): vo
         state.sim.setCamera(cam.offsetX, cam.offsetY, cam.zoom);
     });
 
+    let resizeTimer = 0;
     window.addEventListener("resize", () => {
         state.canvas.width = window.innerWidth * devicePixelRatio;
         state.canvas.height = window.innerHeight * devicePixelRatio;
-        const base = Number(gridSelect.value);
-        [state.gridWidth, state.gridHeight] = computeGridSize(base, state.canvas);
-        state.sim.resize(state.canvas, state.gridWidth, state.gridHeight);
-        state.camera.offsetX = 0;
-        state.camera.offsetY = 0;
-        state.camera.zoom = 1;
-        state.camera.maxZoom = maxZoomForGrid(state.gridWidth, state.gridHeight);
-        state.sim.setCamera(0, 0, 1);
-        updateGridLabels();
-        applyPattern();
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            const base = Number(gridSelect.value);
+            [state.gridWidth, state.gridHeight] = computeGridSize(base, state.canvas);
+            state.sim.resize(state.canvas, state.gridWidth, state.gridHeight);
+            state.camera.offsetX = 0;
+            state.camera.offsetY = 0;
+            state.camera.zoom = 1;
+            state.camera.maxZoom = maxZoomForGrid(state.gridWidth, state.gridHeight);
+            state.sim.setCamera(0, 0, 1);
+            updateGridLabels();
+            applyPattern();
+        }, 200) as unknown as number;
     });
 
     document.addEventListener("keydown", (e) => {
